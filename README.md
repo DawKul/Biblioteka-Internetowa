@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Biblioteka Internetowa
 
 Aplikacja webowa do zarządzania biblioteką internetową z systemem wypożyczeń książek.
@@ -96,3 +97,7 @@ BibliotekaInternetowa/
 
 Projekt edukacyjny.
 
+=======
+# Biblioteka-Internetowa
+Biblioteka Internetowa Projekt
+>>>>>>> 2217d8cc6ab3f4d6140813ca01453e98224cf92a

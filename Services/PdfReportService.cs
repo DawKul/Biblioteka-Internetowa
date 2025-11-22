@@ -127,14 +127,13 @@ namespace BibliotekaInternetowa.Services
 
                     page.Footer()
                         .AlignCenter()
+                        .DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium))
                         .Text(x =>
                         {
                             x.CurrentPageNumber();
                             x.Span(" / ");
                             x.TotalPages();
-                        })
-                        .FontSize(9)
-                        .FontColor(Colors.Grey.Medium);
+                        });
                 });
             });
 
@@ -257,14 +256,13 @@ namespace BibliotekaInternetowa.Services
 
                     page.Footer()
                         .AlignCenter()
+                        .DefaultTextStyle(TextStyle.Default.FontSize(9).FontColor(Colors.Grey.Medium))
                         .Text(x =>
                         {
                             x.CurrentPageNumber();
                             x.Span(" / ");
                             x.TotalPages();
-                        })
-                        .FontSize(9)
-                        .FontColor(Colors.Grey.Medium);
+                        });
                 });
             });
 
