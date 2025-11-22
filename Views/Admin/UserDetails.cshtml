@@ -1,0 +1,110 @@
+@model BibliotekaInternetowa.Models.UserDetailsViewModel
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">👤 Szczegóły użytkownika</h1>
+        <div>
+            <a asp-action="EditUser" asp-route-id="@Model.Id" class="btn btn-outline-secondary me-2">✏️ Edytuj</a>
+            <a asp-action="Users" class="btn btn-outline-secondary">← Powrót do listy</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Informacje o użytkowniku -->
+        <div class="col-12 col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Informacje</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="mb-0">
+                        <dt>Nazwa użytkownika</dt>
+                        <dd>@Model.UserName</dd>
+
+                        <dt>Email</dt>
+                        <dd>@(Model.Email ?? "-")</dd>
+
+                        <dt>Imię i nazwisko</dt>
+                        <dd>@(Model.FullName ?? "-")</dd>
+
+                        <dt>Role</dt>
+                        <dd>
+                            @foreach (var role in Model.Roles)
+                            {
+                                <span class="badge bg-primary me-1">@role</span>
+                            }
+                        </dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historia wypożyczeń -->
+        <div class="col-12 col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📚 Historia wypożyczeń (@Model.Borrowings.Count)</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.Borrowings.Any())
+                    {
+                        <p class="text-muted text-center">Brak wypożyczeń</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Książka</th>
+                                        <th>Autor</th>
+                                        <th>Data wypożyczenia</th>
+                                        <th>Termin zwrotu</th>
+                                        <th>Data zwrotu</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var borrowing in Model.Borrowings)
+                                    {
+                                        <tr class="@(borrowing.IsOverdue ? "table-danger" : "")">
+                                            <td><strong>@borrowing.BookTitle</strong></td>
+                                            <td>@borrowing.BookAuthor</td>
+                                            <td>@borrowing.BorrowDate.ToString("dd.MM.yyyy")</td>
+                                            <td>@borrowing.DueDate.ToString("dd.MM.yyyy")</td>
+                                            <td>
+                                                @if (borrowing.ReturnDate.HasValue)
+                                                {
+                                                    @borrowing.ReturnDate.Value.ToString("dd.MM.yyyy")
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-muted">-</span>
+                                                }
+                                            </td>
+                                            <td>
+                                                @if (borrowing.IsReturned)
+                                                {
+                                                    <span class="badge bg-secondary">Zwrócona</span>
+                                                }
+                                                else if (borrowing.IsOverdue)
+                                                {
+                                                    <span class="badge bg-danger">Przeterminowana</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Aktywna</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

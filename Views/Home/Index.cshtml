@@ -1,0 +1,65 @@
+﻿@{
+    ViewData["Title"] = "Strona główna";
+}
+
+<div class="hero-section mb-5">
+    <div class="text-center py-5">
+        <h1 class="display-4 mb-4">Witamy w Bibliotece Internetowej</h1>
+        <p class="lead mb-4">Odkryj tysiące książek i wypożycz je online</p>
+        <a asp-controller="Books" asp-action="Index" class="btn btn-primary btn-lg">Przeglądaj katalog</a>
+    </div>
+</div>
+
+<div class="container-fluid">
+    <div class="row mb-5">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center p-4">
+                <div class="mb-3" style="font-size: 3rem;">📖</div>
+                <h3>Przeglądaj książki</h3>
+                <p class="text-muted">Przeglądaj nasz rozbudowany katalog książek z różnych kategorii</p>
+                <a asp-controller="Books" asp-action="Index" class="btn btn-outline-primary">Zobacz katalog</a>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center p-4">
+                <div class="mb-3" style="font-size: 3rem;">🔍</div>
+                <h3>Szukaj książek</h3>
+                <p class="text-muted">Znajdź interesujące Cię książki po tytule, autorze lub kategorii</p>
+                <a asp-controller="Books" asp-action="Index" class="btn btn-outline-primary">Szukaj</a>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 text-center p-4">
+                <div class="mb-3" style="font-size: 3rem;">📚</div>
+                <h3>Wypożyczaj</h3>
+                <p class="text-muted">Wypożyczaj książki online i zarządzaj swoimi wypożyczeniami</p>
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    <a asp-controller="Borrowings" asp-action="Index" class="btn btn-outline-primary">Moje wypożyczenia</a>
+                }
+                else
+                {
+                    <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-outline-primary">Zaloguj się</a>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .hero-section {
+        background: linear-gradient(135deg, #f5f5f0 0%, #e8e6e1 100%);
+        border-radius: 12px;
+        margin: 2rem 0;
+    }
+    
+    .hero-section h1 {
+        color: var(--ol-accent);
+        font-weight: 700;
+    }
+    
+    .hero-section .lead {
+        color: var(--ol-text-light);
+        font-size: 1.25rem;
+    }
+</style>

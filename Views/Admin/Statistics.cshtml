@@ -1,0 +1,226 @@
+@model BibliotekaInternetowa.Models.StatisticsViewModel
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">📊 Statystyki</h1>
+        <div>
+            <a asp-action="GenerateStatisticsReport" class="btn btn-danger me-2">
+                📄 Pobierz PDF
+            </a>
+            <a asp-action="Dashboard" class="btn btn-outline-secondary">← Powrót do dashboardu</a>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Wykres wypożyczeń według miesiąca -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📅 Wypożyczenia według miesiąca (ostatnie 12 miesięcy)</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="borrowingsByMonthChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wykres książek według kategorii -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">📚 Książki według kategorii</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="booksByCategoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Wykres wypożyczeń według statusu -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">📊 Wypożyczenia według statusu</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="borrowingsByStatusChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top użytkownicy -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-warning text-dark">
+                    <h5 class="mb-0">⭐ Top 10 użytkowników</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.TopUsers.Any())
+                    {
+                        <p class="text-muted text-center">Brak danych</p>
+                    }
+                    else
+                    {
+                        <ol class="list-group list-group-numbered">
+                            @foreach (var user in Model.TopUsers)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">@user.UserName</div>
+                                        @if (!string.IsNullOrEmpty(user.FullName))
+                                        {
+                                            <small class="text-muted">@user.FullName</small>
+                                        }
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">@user.BorrowingsCount</span>
+                                </li>
+                            }
+                        </ol>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Top książki -->
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">📖 Top 10 najczęściej wypożyczanych książek</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.TopBooks.Any())
+                    {
+                        <p class="text-muted text-center">Brak danych</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Pozycja</th>
+                                        <th>Tytuł</th>
+                                        <th>Autor</th>
+                                        <th>Liczba wypożyczeń</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{ int position = 1; }
+                                    @foreach (var book in Model.TopBooks)
+                                    {
+                                        <tr>
+                                            <td><strong>#@position</strong></td>
+                                            <td><strong>@book.Title</strong></td>
+                                            <td>@book.Author</td>
+                                            <td><span class="badge bg-primary">@book.BorrowingsCount</span></td>
+                                        </tr>
+                                        position++;
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Wykres wypożyczeń według miesiąca
+    const borrowingsByMonthData = {
+        labels: [@Html.Raw(string.Join(", ", Model.BorrowingsByMonth.Keys.Select(k => $"'{k}'")))],
+        datasets: [{
+            label: 'Liczba wypożyczeń',
+            data: [@string.Join(", ", Model.BorrowingsByMonth.Values)],
+            backgroundColor: 'rgba(212, 165, 116, 0.5)',
+            borderColor: 'rgba(212, 165, 116, 1)',
+            borderWidth: 2
+        }]
+    };
+
+    new Chart(document.getElementById('borrowingsByMonthChart'), {
+        type: 'line',
+        data: borrowingsByMonthData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: true
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+
+    // Wykres książek według kategorii
+    const booksByCategoryData = {
+        labels: [@Html.Raw(string.Join(", ", Model.BooksByCategory.Keys.Select(k => $"'{k}'")))],
+        datasets: [{
+            label: 'Liczba książek',
+            data: [@string.Join(", ", Model.BooksByCategory.Values)],
+            backgroundColor: [
+                'rgba(212, 165, 116, 0.6)',
+                'rgba(107, 142, 35, 0.6)',
+                'rgba(70, 130, 180, 0.6)',
+                'rgba(255, 140, 0, 0.6)',
+                'rgba(220, 20, 60, 0.6)',
+                'rgba(138, 43, 226, 0.6)',
+                'rgba(255, 215, 0, 0.6)'
+            ],
+            borderWidth: 2
+        }]
+    };
+
+    new Chart(document.getElementById('booksByCategoryChart'), {
+        type: 'doughnut',
+        data: booksByCategoryData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    position: 'right'
+                }
+            }
+        }
+    });
+
+    // Wykres wypożyczeń według statusu
+    const borrowingsByStatusData = {
+        labels: [@Html.Raw(string.Join(", ", Model.BorrowingsByStatus.Keys.Select(k => $"'{k}'")))],
+        datasets: [{
+            label: 'Liczba wypożyczeń',
+            data: [@string.Join(", ", Model.BorrowingsByStatus.Values)],
+            backgroundColor: [
+                'rgba(107, 142, 35, 0.6)',
+                'rgba(128, 128, 128, 0.6)',
+                'rgba(220, 20, 60, 0.6)'
+            ],
+            borderWidth: 2
+        }]
+    };
+
+    new Chart(document.getElementById('borrowingsByStatusChart'), {
+        type: 'bar',
+        data: borrowingsByStatusData,
+        options: {
+            responsive: true,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
+

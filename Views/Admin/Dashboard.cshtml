@@ -1,0 +1,163 @@
+@model BibliotekaInternetowa.Models.AdminDashboardViewModel
+
+<div class="container-fluid">
+    <h1 class="mb-4">📊 Dashboard Administratora</h1>
+
+    <!-- Statystyki główne -->
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="display-4 text-primary mb-2">@Model.TotalBooks</h2>
+                    <p class="card-text text-muted mb-0">📚 Wszystkie książki</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="display-4 text-success mb-2">@Model.AvailableBooks</h2>
+                    <p class="card-text text-muted mb-0">✅ Dostępne książki</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="display-4 text-info mb-2">@Model.TotalUsers</h2>
+                    <p class="card-text text-muted mb-0">👥 Użytkownicy</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="display-4 text-warning mb-2">@Model.ActiveBorrowings</h2>
+                    <p class="card-text text-muted mb-0">📖 Aktywne wypożyczenia</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm">
+                <div class="card-body">
+                    <h2 class="display-4 text-secondary mb-2">@Model.TotalBorrowings</h2>
+                    <p class="card-text text-muted mb-0">📋 Wszystkie wypożyczenia</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-12 col-md-6 col-lg-3">
+            <div class="card text-center h-100 shadow-sm border-danger">
+                <div class="card-body">
+                    <h2 class="display-4 text-danger mb-2">@Model.OverdueBorrowings</h2>
+                    <p class="card-text text-muted mb-0">⚠️ Przeterminowane</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Ostatnie wypożyczenia -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">📋 Ostatnie wypożyczenia</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.RecentBorrowings.Any())
+                    {
+                        <p class="text-muted text-center">Brak wypożyczeń</p>
+                    }
+                    else
+                    {
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Użytkownik</th>
+                                        <th>Książka</th>
+                                        <th>Data wypożyczenia</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var borrowing in Model.RecentBorrowings)
+                                    {
+                                        <tr>
+                                            <td>@borrowing.UserName</td>
+                                            <td>@borrowing.BookTitle</td>
+                                            <td>@borrowing.BorrowDate.ToString("dd.MM.yyyy")</td>
+                                            <td>
+                                                @if (borrowing.IsReturned)
+                                                {
+                                                    <span class="badge bg-secondary">Zwrócona</span>
+                                                }
+                                                else if (borrowing.DueDate < DateTime.Now)
+                                                {
+                                                    <span class="badge bg-danger">Przeterminowana</span>
+                                                }
+                                                else
+                                                {
+                                                    <span class="badge bg-success">Aktywna</span>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                </div>
+            </div>
+        </div>
+
+        <!-- Najpopularniejsze książki -->
+        <div class="col-12 col-lg-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">⭐ Najpopularniejsze książki</h5>
+                </div>
+                <div class="card-body">
+                    @if (!Model.PopularBooks.Any())
+                    {
+                        <p class="text-muted text-center">Brak danych</p>
+                    }
+                    else
+                    {
+                        <ol class="list-group list-group-numbered">
+                            @foreach (var book in Model.PopularBooks)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-start">
+                                    <div class="ms-2 me-auto">
+                                        <div class="fw-bold">@book.Title</div>
+                                    </div>
+                                    <span class="badge bg-primary rounded-pill">@book.BorrowCount</span>
+                                </li>
+                            }
+                        </ol>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title mb-3">🔗 Szybkie linki</h5>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a asp-action="Users" class="btn btn-outline-primary">👥 Zarządzaj użytkownikami</a>
+                        <a asp-action="AllBorrowings" class="btn btn-outline-primary">📋 Wszystkie wypożyczenia</a>
+                        <a asp-action="Statistics" class="btn btn-outline-primary">📊 Statystyki</a>
+                        <a asp-controller="Books" asp-action="Index" class="btn btn-outline-primary">📚 Katalog książek</a>
+                        <a asp-action="GenerateStatisticsReport" class="btn btn-danger">📄 Raport PDF</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+

@@ -1,0 +1,135 @@
+@model BibliotekaInternetowa.Models.AllBorrowingsViewModel
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="mb-0">📋 Wszystkie wypożyczenia</h1>
+        <div>
+            <a asp-action="GenerateBorrowingsReport" asp-route-status="@Model.Status" asp-route-userId="@Model.UserId" class="btn btn-danger me-2">
+                📄 Pobierz PDF
+            </a>
+            <a asp-action="Dashboard" class="btn btn-outline-secondary">← Powrót do dashboardu</a>
+        </div>
+    </div>
+
+    <!-- Formularz filtrowania -->
+    <div class="card mb-4 shadow-sm">
+        <div class="card-body">
+            <form asp-action="AllBorrowings" method="get" class="row g-3">
+                <div class="col-md-4">
+                    <label for="searchTerm" class="form-label">🔍 Wyszukaj</label>
+                    <input type="text" class="form-control" id="searchTerm" name="searchTerm" 
+                           value="@Model.SearchTerm" placeholder="Użytkownik, tytuł lub autor">
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">📊 Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="all" selected="@(Model.Status == "all")">Wszystkie</option>
+                        <option value="active" selected="@(Model.Status == "active")">Aktywne</option>
+                        <option value="returned" selected="@(Model.Status == "returned")">Zwrócone</option>
+                        <option value="overdue" selected="@(Model.Status == "overdue")">Przeterminowane</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="userId" class="form-label">👤 Użytkownik</label>
+                    <select class="form-select" id="userId" name="userId">
+                        <option value="">Wszyscy</option>
+                        @foreach (var user in Model.Users)
+                        {
+                            <option value="@user.Id" selected="@(Model.UserId == user.Id)">@user.UserName</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100 me-2">🔍 Szukaj</button>
+                    <a asp-action="AllBorrowings" class="btn btn-outline-secondary">🔄</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    @if (!Model.Borrowings.Any())
+    {
+        <div class="alert alert-info text-center">
+            <p class="mb-0">Nie znaleziono wypożyczeń spełniających kryteria.</p>
+        </div>
+    }
+    else
+    {
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Znaleziono: @Model.Borrowings.Count wypożyczeń</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Użytkownik</th>
+                                <th>Książka</th>
+                                <th>Autor</th>
+                                <th>Data wypożyczenia</th>
+                                <th>Termin zwrotu</th>
+                                <th>Data zwrotu</th>
+                                <th>Status</th>
+                                <th>Akcje</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var borrowing in Model.Borrowings)
+                            {
+                                <tr class="@(borrowing.IsOverdue ? "table-danger" : "")">
+                                    <td>
+                                        <strong>@borrowing.UserName</strong>
+                                        @if (!string.IsNullOrEmpty(borrowing.UserFullName))
+                                        {
+                                            <br /><small class="text-muted">@borrowing.UserFullName</small>
+                                        }
+                                    </td>
+                                    <td><strong>@borrowing.BookTitle</strong></td>
+                                    <td>@borrowing.BookAuthor</td>
+                                    <td>@borrowing.BorrowDate.ToString("dd.MM.yyyy")</td>
+                                    <td>@borrowing.DueDate.ToString("dd.MM.yyyy")</td>
+                                    <td>
+                                        @if (borrowing.ReturnDate.HasValue)
+                                        {
+                                            @borrowing.ReturnDate.Value.ToString("dd.MM.yyyy")
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">-</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (borrowing.IsReturned)
+                                        {
+                                            <span class="badge bg-secondary">Zwrócona</span>
+                                        }
+                                        else if (borrowing.IsOverdue)
+                                        {
+                                            <span class="badge bg-danger">Przeterminowana</span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">Aktywna</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        @if (!borrowing.IsReturned)
+                                        {
+                                            <form asp-controller="Borrowings" asp-action="Return" method="post" style="display: inline;">
+                                                <input type="hidden" name="id" value="@borrowing.Id" />
+                                                @Html.AntiForgeryToken()
+                                                <button type="submit" class="btn btn-sm btn-success">Zwróć</button>
+                                            </form>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+

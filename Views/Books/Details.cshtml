@@ -1,0 +1,151 @@
+﻿@model BibliotekaInternetowa.Models.Book
+
+<div class="container-fluid">
+    <div class="row mb-4">
+        <div class="col-12">
+            <a asp-action="Index" class="btn btn-outline-secondary mb-3">← Powrót do listy</a>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Okładka książki -->
+        <div class="col-12 col-md-4 col-lg-3 mb-4">
+            <div class="book-cover-container-details">
+                @if (!string.IsNullOrEmpty(Model.CoverImageUrl))
+                {
+                    <img src="@Model.CoverImageUrl" alt="@Model.Title" class="book-cover-details" 
+                         onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-cover-details\'><div class=\'no-cover-icon\'>📚</div><span>Brak okładki</span></div>'">
+                }
+                else
+                {
+                    <div class="no-cover-details">
+                        <div class="no-cover-icon">📚</div>
+                        <span>Brak okładki</span>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Szczegóły książki -->
+        <div class="col-12 col-md-8 col-lg-9">
+            <h1 class="mb-4">@Model.Title</h1>
+            
+            <dl class="row mb-4">
+                <dt class="col-sm-3">Autor</dt>
+                <dd class="col-sm-9">@Model.Author</dd>
+                
+                <dt class="col-sm-3">ISBN</dt>
+                <dd class="col-sm-9">@Model.ISBN</dd>
+                
+                <dt class="col-sm-3">Rok wydania</dt>
+                <dd class="col-sm-9">@Model.PublicationYear</dd>
+                
+                <dt class="col-sm-3">Kategoria</dt>
+                <dd class="col-sm-9">
+                    <span class="badge bg-secondary">@Model.Category</span>
+                </dd>
+                
+                <dt class="col-sm-3">Dostępność</dt>
+                <dd class="col-sm-9">
+                    @if (Model.AvailableCopies > 0)
+                    {
+                        <span class="badge bg-success">Dostępna (@Model.AvailableCopies / @Model.TotalCopies egzemplarzy)</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-danger">Niedostępna</span>
+                    }
+                </dd>
+                
+                @if (!string.IsNullOrEmpty(Model.Description))
+                {
+                    <dt class="col-sm-3">Opis</dt>
+                    <dd class="col-sm-9">
+                        <p class="text-muted">@Model.Description</p>
+                    </dd>
+                }
+            </dl>
+
+            <div class="mt-4">
+                @if (User.Identity?.IsAuthenticated == true)
+                {
+                    @if (Model.AvailableCopies > 0)
+                    {
+                        <form asp-controller="Borrowings" asp-action="Borrow" method="post" style="display: inline;">
+                            <input type="hidden" name="bookId" value="@Model.Id" />
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-success btn-lg">📖 Wypożycz książkę</button>
+                        </form>
+                    }
+                    else
+                    {
+                        <span class="btn btn-danger btn-lg disabled">Niedostępna</span>
+                    }
+                }
+                else
+                {
+                    <p class="text-info">
+                        <a asp-area="Identity" asp-page="/Account/Login" class="btn btn-primary btn-lg">Zaloguj się, aby wypożyczyć książkę</a>
+                    </p>
+                }
+            </div>
+
+            @if (User.IsInRole("Admin"))
+            {
+                <div class="mt-3">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-outline-secondary">✏️ Edytuj</a>
+                    <a asp-action="Delete" asp-route-id="@Model.Id" class="btn btn-outline-danger">🗑️ Usuń</a>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<style>
+    .book-cover-container-details {
+        width: 100%;
+        max-width: 300px;
+        margin: 0 auto;
+        aspect-ratio: 2/3;
+        background-color: #fff9e6;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 6px rgba(212, 165, 116, 0.2);
+    }
+
+    .book-cover-details {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .no-cover-details {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        background: linear-gradient(135deg, #fff9e6 0%, #ffe8b3 100%);
+        color: #8b7355;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .no-cover-details .no-cover-icon {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+    }
+
+    .no-cover-details span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    @@media (max-width: 768px) {
+        .book-cover-container-details {
+            max-width: 250px;
+        }
+    }
+</style>

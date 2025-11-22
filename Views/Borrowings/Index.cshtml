@@ -1,0 +1,66 @@
+@model IEnumerable<BibliotekaInternetowa.Models.Borrowing>
+
+@{
+    ViewData["Title"] = "Moje wypożyczenia";
+}
+
+<h2>Moje wypożyczenia</h2>
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success">@TempData["Success"]</div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+@if (Model.Any())
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Tytuł książki</th>
+                <th>Autor</th>
+                <th>Data wypożyczenia</th>
+                <th>Termin zwrotu</th>
+                <th>Data zwrotu</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var borrowing in Model)
+            {
+                <tr>
+                    <td>@borrowing.Book.Title</td>
+                    <td>@borrowing.Book.Author</td>
+                    <td>@borrowing.BorrowDate.ToString("dd.MM.yyyy")</td>
+                    <td>@borrowing.DueDate.ToString("dd.MM.yyyy")</td>
+                    <td>@(borrowing.ReturnDate?.ToString("dd.MM.yyyy") ?? "-")</td>
+                    <td>
+                        @if (borrowing.IsReturned)
+                        {
+                            <span class="badge bg-success">Zwrócona</span>
+                        }
+                        else if (borrowing.DueDate < DateTime.Now)
+                        {
+                            <span class="badge bg-danger">Przeterminowana</span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-warning">Wypożyczona</span>
+                        }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>Nie masz żadnych wypożyczeń.</p>
+}
+
+<a asp-controller="Books" asp-action="Index" class="btn btn-secondary">Powrót do katalogu</a>
+
