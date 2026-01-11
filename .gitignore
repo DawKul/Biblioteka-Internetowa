@@ -363,5 +363,12 @@ FodyWeavers.xsd
 .idea/
 *.sln.iml
 
+# Dokumentacja wewnętrzna (nie commitujemy do repozytorium)
+ANALIZA_WYMAGAN.md
+DOKUMENTACJA_ARCHITEKTURA_I_PUBLIKACJA.md
+PUBLISH.md
+PUBLIKACJA_AZURE_KROK_PO_KROKU.md
+README.md
+
 # Production appsettings (zawiera wrażliwe dane - connection strings, hasła)
 appsettings.Production.json
