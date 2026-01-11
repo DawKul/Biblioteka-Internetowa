@@ -25,6 +25,7 @@ builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddScoped<BibliotekaInternetowa.Services.PdfReportService>();
+builder.Services.AddHttpClient();
 
 var app = builder.Build();
 
@@ -33,14 +34,17 @@ using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
     var context = services.GetRequiredService<ApplicationDbContext>();
+    var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
+        logger.LogInformation("Stosowanie migracji bazy danych...");
         context.Database.Migrate();
+        logger.LogInformation("Migracje zostały zastosowane pomyślnie.");
     }
     catch (Exception ex)
     {
-        var logger = services.GetRequiredService<ILogger<Program>>();
         logger.LogError(ex, "Błąd podczas aplikowania migracji bazy danych");
+        // Nie przerywamy działania aplikacji, ale logujemy błąd
     }
 }
 
@@ -203,6 +207,18 @@ using (var scope = app.Services.CreateScope())
             CoverImageUrl = "https://covers.openlibrary.org/b/isbn/9788308060214-L.jpg",
             TotalCopies = 4,
             AvailableCopies = 1
+        },
+        new Book
+        {
+            Title = "Frankenstein",
+            Author = "Mary Shelley",
+            ISBN = "978-0-14-143947-1",
+            PublicationYear = 1818,
+            Category = "Horror",
+            Description = "Klasyczna powieść gotycka o naukowcu Wiktorze Frankensteinie, który tworzy żywą istotę z części martwych ciał. Historia o odpowiedzialności naukowca, samotności i konsekwencjach ludzkiej ambicji.",
+            CoverImageUrl = "https://covers.openlibrary.org/b/isbn/9780141439471-L.jpg",
+            TotalCopies = 4,
+            AvailableCopies = 3
         }
     };
 

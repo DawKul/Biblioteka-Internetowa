@@ -89,11 +89,15 @@
             @foreach (var item in Model.Books)
             {
                 <div class="col-12 col-sm-6 col-md-4 col-lg-3">
-                    <div class="card h-100 shadow-sm book-card">
+                        <div class="card h-100 shadow-sm book-card">
                         <div class="book-cover-container">
-                            @if (!string.IsNullOrEmpty(item.CoverImageUrl))
+                            @if (!string.IsNullOrEmpty(item.ISBN))
                             {
-                                <img src="@item.CoverImageUrl" alt="@item.Title" class="book-cover" onerror="this.onerror=null; this.parentElement.innerHTML='<div class=\'no-cover\'><div class=\'no-cover-icon\'>📚</div><span>Brak okładki</span></div>'">
+                                var isbnClean = item.ISBN.Replace("-", "").Replace(" ", "");
+                                <img src="@Url.Action("Cover", "Books", new { isbn = isbnClean, size = "L" })" alt="@item.Title" class="book-cover" 
+                                     loading="lazy"
+                                     data-isbn="@isbnClean"
+                                     onerror="handleImageError(this, '@isbnClean')">
                             }
                             else
                             {
@@ -218,3 +222,62 @@
         }
     }
 </style>
+
+<script>
+    function handleImageError(img, isbn) {
+        var container = img.closest('.book-cover-container');
+        if (!container || container.querySelector('.no-cover')) {
+            return;
+        }
+
+        // Spróbuj alternatywnych rozmiarów lokalnych plików (M, S)
+        if (isbn) {
+            var sizes = ['M', 'S'];
+            var currentIndex = 0;
+            
+            function tryNextSize() {
+                if (currentIndex >= sizes.length) {
+                    // Jeśli żaden rozmiar nie działa, pokaż placeholder
+                    container.innerHTML = '<div class="no-cover"><div class="no-cover-icon">📚</div><span>Brak okładki</span></div>';
+                    return;
+                }
+                
+                var size = sizes[currentIndex];
+                var testUrl = '/Books/Cover/' + isbn + '?size=' + size;
+                var testImg = new Image();
+                
+                testImg.onload = function() {
+                    img.src = testUrl;
+                };
+                
+                testImg.onerror = function() {
+                    currentIndex++;
+                    tryNextSize();
+                };
+                
+                testImg.src = testUrl;
+            }
+            
+            tryNextSize();
+        } else {
+            // Jeśli nie ma ISBN, pokaż placeholder
+            container.innerHTML = '<div class="no-cover"><div class="no-cover-icon">📚</div><span>Brak okładki</span></div>';
+        }
+    }
+
+    // Sprawdź czy obrazki się załadowały po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', function() {
+        var images = document.querySelectorAll('.book-cover');
+        images.forEach(function(img) {
+            var isbn = img.getAttribute('data-isbn');
+            img.addEventListener('error', function() {
+                handleImageError(this, isbn);
+            });
+            
+            // Sprawdź czy obrazek się załadował (jeśli naturalHeight === 0, obrazek się nie załadował)
+            if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0) {
+                handleImageError(img, isbn);
+            }
+        });
+    });
+</script>

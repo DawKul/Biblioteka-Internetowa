@@ -222,6 +222,170 @@ namespace BibliotekaInternetowa.Controllers
             return RedirectToAction(nameof(UserDetails), new { id = user.Id });
         }
 
+        // GET: Admin/CreateUser
+        public async Task<IActionResult> CreateUser()
+        {
+            var allRoles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+            var viewModel = new CreateUserViewModel
+            {
+                AvailableRoles = allRoles
+            };
+            return View(viewModel);
+        }
+
+        // POST: Admin/CreateUser
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateUser(CreateUserViewModel model)
+        {
+            if (!ModelState.IsValid)
+            {
+                model.AvailableRoles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+                return View(model);
+            }
+
+            // Sprawdź czy użytkownik o takim emailu już istnieje
+            var existingUser = await _userManager.FindByEmailAsync(model.Email);
+            if (existingUser != null)
+            {
+                ModelState.AddModelError("Email", "Użytkownik o tym adresie email już istnieje.");
+                model.AvailableRoles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+                return View(model);
+            }
+
+            // Sprawdź czy użytkownik o takiej nazwie już istnieje
+            existingUser = await _userManager.FindByNameAsync(model.UserName);
+            if (existingUser != null)
+            {
+                ModelState.AddModelError("UserName", "Użytkownik o tej nazwie już istnieje.");
+                model.AvailableRoles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+                return View(model);
+            }
+
+            var user = new ApplicationUser
+            {
+                UserName = model.UserName,
+                Email = model.Email,
+                FullName = model.FullName,
+                EmailConfirmed = true
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+                model.AvailableRoles = await _roleManager.Roles.Select(r => r.Name!).ToListAsync();
+                return View(model);
+            }
+
+            // Przypisz role
+            if (model.SelectedRoles.Any())
+            {
+                await _userManager.AddToRolesAsync(user, model.SelectedRoles);
+            }
+            else
+            {
+                // Domyślnie przypisz rolę Czytelnik, jeśli nie wybrano żadnej
+                await _userManager.AddToRoleAsync(user, "Czytelnik");
+            }
+
+            TempData["Success"] = $"Użytkownik {user.UserName} został utworzony pomyślnie.";
+            return RedirectToAction(nameof(Users));
+        }
+
+        // GET: Admin/DeleteUser/5
+        public async Task<IActionResult> DeleteUser(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Sprawdź czy użytkownik nie jest administratorem
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Contains("Admin"))
+            {
+                TempData["Error"] = "Nie można usunąć użytkownika z rolą Administrator.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            // Sprawdź czy użytkownik ma aktywne wypożyczenia
+            var activeBorrowings = await _context.Borrowings
+                .Where(b => b.UserId == user.Id && !b.IsReturned)
+                .CountAsync();
+
+            var borrowingsCount = await _context.Borrowings
+                .Where(b => b.UserId == user.Id)
+                .CountAsync();
+
+            var viewModel = new DeleteUserViewModel
+            {
+                Id = user.Id,
+                UserName = user.UserName ?? "",
+                Email = user.Email,
+                FullName = user.FullName,
+                Roles = roles.ToList(),
+                ActiveBorrowingsCount = activeBorrowings,
+                TotalBorrowingsCount = borrowingsCount
+            };
+
+            return View(viewModel);
+        }
+
+        // POST: Admin/DeleteUser/5
+        [HttpPost, ActionName("DeleteUser")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteUserConfirmed(string id)
+        {
+            if (string.IsNullOrEmpty(id)) return NotFound();
+
+            var user = await _userManager.FindByIdAsync(id);
+            if (user == null) return NotFound();
+
+            // Sprawdź czy użytkownik nie jest administratorem
+            var roles = await _userManager.GetRolesAsync(user);
+            if (roles.Contains("Admin"))
+            {
+                TempData["Error"] = "Nie można usunąć użytkownika z rolą Administrator.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            // Sprawdź czy użytkownik ma aktywne wypożyczenia
+            var activeBorrowings = await _context.Borrowings
+                .Where(b => b.UserId == user.Id && !b.IsReturned)
+                .CountAsync();
+
+            if (activeBorrowings > 0)
+            {
+                TempData["Error"] = $"Nie można usunąć użytkownika, ponieważ ma {activeBorrowings} aktywnych wypożyczeń. Najpierw zwróć wszystkie książki.";
+                return RedirectToAction(nameof(Users));
+            }
+
+            // Usuń wszystkie wypożyczenia użytkownika (historia)
+            var borrowings = await _context.Borrowings
+                .Where(b => b.UserId == user.Id)
+                .ToListAsync();
+            _context.Borrowings.RemoveRange(borrowings);
+
+            var userName = user.UserName;
+            var result = await _userManager.DeleteAsync(user);
+            if (!result.Succeeded)
+            {
+                foreach (var error in result.Errors)
+                {
+                    ModelState.AddModelError("", error.Description);
+                }
+                return RedirectToAction(nameof(DeleteUser), new { id = id });
+            }
+
+            await _context.SaveChangesAsync();
+            TempData["Success"] = $"Użytkownik {userName} został usunięty pomyślnie.";
+            return RedirectToAction(nameof(Users));
+        }
+
         // GET: Admin/AllBorrowings
         public async Task<IActionResult> AllBorrowings(string? searchTerm, string? status, string? userId)
         {

@@ -363,3 +363,5 @@ FodyWeavers.xsd
 .idea/
 *.sln.iml
 
+# Production appsettings (zawiera wrażliwe dane - connection strings, hasła)
+appsettings.Production.json

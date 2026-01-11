@@ -1,0 +1,256 @@
+@model BibliotekaInternetowa.Models.PopularBooksViewModel
+
+@{
+    ViewData["Title"] = "Popularne książki";
+}
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 class="mb-0">🔥 Popularne książki</h2>
+        <div class="d-flex align-items-center gap-2">
+            <label for="periodSelect" class="mb-0 small text-muted">Okres:</label>
+            <select id="periodSelect" class="form-select form-select-sm" style="width: auto;" onchange="changePeriod(this.value)">
+                @if (Model.Period == "week")
+                {
+                    <option value="week" selected>Ostatnie 7 dni</option>
+                }
+                else
+                {
+                    <option value="week">Ostatnie 7 dni</option>
+                }
+                @if (Model.Period == "month")
+                {
+                    <option value="month" selected>Ostatni miesiąc</option>
+                }
+                else
+                {
+                    <option value="month">Ostatni miesiąc</option>
+                }
+                @if (Model.Period == "year")
+                {
+                    <option value="year" selected>Ostatni rok</option>
+                }
+                else
+                {
+                    <option value="year">Ostatni rok</option>
+                }
+            </select>
+        </div>
+    </div>
+
+    @if (!Model.Books.Any())
+    {
+        <div class="alert alert-info text-center">
+            <p class="mb-0">
+                Brak wypożyczeń w wybranym okresie. 
+                <a asp-controller="Books" asp-action="Index" class="alert-link">Przeglądaj katalog książek</a>
+            </p>
+        </div>
+    }
+    else
+    {
+        <div class="row g-4">
+            @foreach (var item in Model.Books)
+            {
+                <div class="col-12 col-sm-6 col-md-4 col-lg-3">
+                    <div class="card h-100 shadow-sm book-card">
+                        <div class="book-cover-container">
+                            <div class="popularity-badge">
+                                <span class="badge bg-warning text-dark">
+                                    🔥 @item.BorrowingsCount @(item.BorrowingsCount == 1 ? "wypożyczenie" : item.BorrowingsCount < 5 ? "wypożyczenia" : "wypożyczeń")
+                                </span>
+                            </div>
+                            @if (!string.IsNullOrEmpty(item.ISBN))
+                            {
+                                var isbnClean = item.ISBN.Replace("-", "").Replace(" ", "");
+                                <img src="@Url.Action("Cover", "Books", new { isbn = isbnClean, size = "L" })" alt="@item.Title" class="book-cover" 
+                                     loading="lazy"
+                                     data-isbn="@isbnClean"
+                                     onerror="handleImageError(this, '@isbnClean')">
+                            }
+                            else
+                            {
+                                <div class="no-cover">
+                                    <div class="no-cover-icon">📚</div>
+                                    <span>Brak okładki</span>
+                                </div>
+                            }
+                        </div>
+                        <div class="card-body d-flex flex-column">
+                            <h5 class="card-title">@item.Title</h5>
+                            <p class="card-text text-muted mb-2">
+                                <small><strong>Autor:</strong> @item.Author</small>
+                            </p>
+                            <p class="card-text mb-2">
+                                <span class="badge bg-secondary">@item.Category</span>
+                            </p>
+                            <div class="availability-badge mb-3">
+                                @if (item.AvailableCopies > 0)
+                                {
+                                    <span class="badge bg-success">Dostępna (@item.AvailableCopies/@item.TotalCopies)</span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">Niedostępna</span>
+                                }
+                            </div>
+                            <div class="mt-auto">
+                                <a asp-controller="Books" asp-action="Details" asp-route-id="@item.BookId" class="btn btn-sm btn-outline-primary w-100">
+                                    Szczegóły
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>
+
+<style>
+    .book-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+        border: none;
+        overflow: hidden;
+    }
+
+    .book-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .book-cover-container {
+        width: 100%;
+        height: 300px;
+        background: linear-gradient(135deg, var(--ol-secondary) 0%, #d4d1ca 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .book-cover {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .no-cover {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        color: rgba(255, 255, 255, 0.7);
+        text-align: center;
+        padding: 20px;
+        height: 100%;
+    }
+
+    .no-cover-icon {
+        font-size: 4rem;
+        margin-bottom: 10px;
+        opacity: 0.8;
+        line-height: 1;
+    }
+
+    .no-cover span {
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--ol-text);
+        min-height: 3rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .popularity-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+    }
+
+    .availability-badge {
+        margin-top: auto;
+    }
+
+    @@media (max-width: 576px) {
+        .book-cover-container {
+            height: 250px;
+        }
+    }
+</style>
+
+<script>
+    function changePeriod(period) {
+        window.location.href = '@Url.Action("Popular", "Home")?period=' + period;
+    }
+
+    function handleImageError(img, isbn) {
+        var container = img.closest('.book-cover-container');
+        if (!container || container.querySelector('.no-cover')) {
+            return;
+        }
+
+        var badge = container.querySelector('.popularity-badge');
+        var badgeHtml = badge ? badge.outerHTML : '';
+
+        // Spróbuj alternatywnych rozmiarów lokalnych plików (M, S)
+        if (isbn) {
+            var sizes = ['M', 'S'];
+            var currentIndex = 0;
+            
+            function tryNextSize() {
+                if (currentIndex >= sizes.length) {
+                    // Jeśli żaden rozmiar nie działa, pokaż placeholder (zachowaj badge)
+                    container.innerHTML = badgeHtml + '<div class="no-cover"><div class="no-cover-icon">📚</div><span>Brak okładki</span></div>';
+                    return;
+                }
+                
+                var size = sizes[currentIndex];
+                var testUrl = '/Books/Cover/' + isbn + '?size=' + size;
+                var testImg = new Image();
+                
+                testImg.onload = function() {
+                    img.src = testUrl;
+                };
+                
+                testImg.onerror = function() {
+                    currentIndex++;
+                    tryNextSize();
+                };
+                
+                testImg.src = testUrl;
+            }
+            
+            tryNextSize();
+        } else {
+            // Jeśli nie ma ISBN, pokaż placeholder (zachowaj badge)
+            container.innerHTML = badgeHtml + '<div class="no-cover"><div class="no-cover-icon">📚</div><span>Brak okładki</span></div>';
+        }
+    }
+
+    // Sprawdź czy obrazki się załadowały po załadowaniu strony
+    document.addEventListener('DOMContentLoaded', function() {
+        var images = document.querySelectorAll('.book-cover');
+        images.forEach(function(img) {
+            var isbn = img.getAttribute('data-isbn');
+            img.addEventListener('error', function() {
+                handleImageError(this, isbn);
+            });
+            
+            // Sprawdź czy obrazek się załadował
+            if (img.complete && img.naturalHeight === 0 && img.naturalWidth === 0) {
+                handleImageError(img, isbn);
+            }
+        });
+    });
+</script>
+

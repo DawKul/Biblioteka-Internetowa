@@ -1,0 +1,89 @@
+@model BibliotekaInternetowa.Models.DeleteUserViewModel
+
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-12 col-lg-8">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="mb-0">🗑️ Usuń użytkownika</h1>
+                <a asp-action="Users" class="btn btn-outline-secondary">← Anuluj</a>
+            </div>
+
+            @if (TempData["Error"] != null)
+            {
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    @TempData["Error"]
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            }
+
+            <div class="alert alert-warning" role="alert">
+                <h5 class="alert-heading">⚠️ Uwaga!</h5>
+                <p class="mb-0">Czy na pewno chcesz usunąć tego użytkownika? Ta operacja jest nieodwracalna.</p>
+            </div>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="mb-0">Informacje o użytkowniku</h5>
+                </div>
+                <div class="card-body">
+                    <dl class="row">
+                        <dt class="col-sm-3">Nazwa użytkownika:</dt>
+                        <dd class="col-sm-9"><strong>@Model.UserName</strong></dd>
+
+                        <dt class="col-sm-3">Email:</dt>
+                        <dd class="col-sm-9">@Model.Email</dd>
+
+                        <dt class="col-sm-3">Imię i nazwisko:</dt>
+                        <dd class="col-sm-9">@(Model.FullName ?? "-")</dd>
+
+                        <dt class="col-sm-3">Role:</dt>
+                        <dd class="col-sm-9">
+                            @if (Model.Roles.Any())
+                            {
+                                @foreach (var role in Model.Roles)
+                                {
+                                    <span class="badge bg-primary me-1">@role</span>
+                                }
+                            }
+                            else
+                            {
+                                <span class="text-muted">Brak ról</span>
+                            }
+                        </dd>
+
+                        <dt class="col-sm-3">Wypożyczenia:</dt>
+                        <dd class="col-sm-9">
+                            <span class="badge bg-secondary">@Model.TotalBorrowingsCount łącznie</span>
+                            @if (Model.ActiveBorrowingsCount > 0)
+                            {
+                                <span class="badge bg-warning text-dark ms-2">@Model.ActiveBorrowingsCount aktywnych</span>
+                            }
+                        </dd>
+                    </dl>
+
+                    @if (Model.ActiveBorrowingsCount > 0)
+                    {
+                        <div class="alert alert-danger mt-3">
+                            <strong>⚠️ Nie można usunąć użytkownika!</strong><br />
+                            Użytkownik ma @Model.ActiveBorrowingsCount aktywnych wypożyczeń. 
+                            Najpierw zwróć wszystkie książki, a następnie spróbuj ponownie.
+                        </div>
+                    }
+                </div>
+            </div>
+
+            <form asp-action="DeleteUser" method="post" class="mt-4">
+                <input type="hidden" asp-for="Id" />
+                <div class="d-flex gap-2">
+                    @if (Model.ActiveBorrowingsCount == 0)
+                    {
+                        <button type="submit" class="btn btn-danger" onclick="return confirm('Czy na pewno chcesz usunąć użytkownika @Model.UserName? Ta operacja jest nieodwracalna.');">
+                            🗑️ Usuń użytkownika
+                        </button>
+                    }
+                    <a asp-action="Users" class="btn btn-outline-secondary">Anuluj</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
