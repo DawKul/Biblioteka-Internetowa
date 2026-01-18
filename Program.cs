@@ -5,10 +5,26 @@ using BibliotekaInternetowa.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Konfiguracja logowania - ważne dla Azure
+builder.Logging.ClearProviders();
+builder.Logging.AddConsole();
+builder.Logging.AddDebug();
+if (builder.Environment.IsDevelopment())
+{
+    builder.Logging.AddEventSourceLogger();
+}
+
 // KONTEKST + IDENTITY – TYLKO TEN KOD!
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+if (string.IsNullOrEmpty(connectionString))
+{
+    var errorMsg = "Connection string 'DefaultConnection' not found. Please configure it in Azure Portal -> Environment Variables -> Connection strings.";
+    Console.WriteLine($"ERROR: {errorMsg}");
+    throw new InvalidOperationException(errorMsg);
+}
+
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")
-        ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.")));
+    options.UseSqlServer(connectionString));
 
 builder.Services.AddDefaultIdentity<ApplicationUser>(options =>
 {
@@ -33,18 +49,36 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
     var logger = services.GetRequiredService<ILogger<Program>>();
     try
     {
+        logger.LogInformation("Próba połączenia z bazą danych...");
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        
+        // Test połączenia
+        if (context.Database.CanConnect())
+        {
+            logger.LogInformation("Połączenie z bazą danych udane.");
+        }
+        else
+        {
+            logger.LogWarning("Nie można połączyć się z bazą danych.");
+        }
+        
         logger.LogInformation("Stosowanie migracji bazy danych...");
         context.Database.Migrate();
         logger.LogInformation("Migracje zostały zastosowane pomyślnie.");
     }
     catch (Exception ex)
     {
-        logger.LogError(ex, "Błąd podczas aplikowania migracji bazy danych");
-        // Nie przerywamy działania aplikacji, ale logujemy błąd
+        logger.LogError(ex, "BŁĄD podczas aplikowania migracji bazy danych: {Message}", ex.Message);
+        logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
+        // W produkcji nie przerywamy działania aplikacji, ale logujemy błąd
+        // W development rzucamy wyjątek, aby szybko zobaczyć problem
+        if (app.Environment.IsDevelopment())
+        {
+            throw;
+        }
     }
 }
 
@@ -52,31 +86,48 @@ using (var scope = app.Services.CreateScope())
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
-    var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
-
-    string[] roleNames = { "Admin", "Czytelnik" };
-    foreach (var roleName in roleNames)
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
     {
-        if (!await roleManager.RoleExistsAsync(roleName))
+        var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
+        var roleManager = services.GetRequiredService<RoleManager<IdentityRole>>();
+
+        logger.LogInformation("Seedowanie ról i użytkownika admin...");
+        
+        string[] roleNames = { "Admin", "Czytelnik" };
+        foreach (var roleName in roleNames)
         {
-            await roleManager.CreateAsync(new IdentityRole(roleName));
+            if (!await roleManager.RoleExistsAsync(roleName))
+            {
+                await roleManager.CreateAsync(new IdentityRole(roleName));
+                logger.LogInformation("Utworzono rolę: {RoleName}", roleName);
+            }
+        }
+
+        var adminEmail = "admin@biblioteka.pl";
+        var adminUser = await userManager.FindByEmailAsync(adminEmail);
+        if (adminUser == null)
+        {
+            adminUser = new ApplicationUser
+            {
+                UserName = adminEmail,
+                Email = adminEmail,
+                FullName = "Administrator",
+                EmailConfirmed = true
+            };
+            await userManager.CreateAsync(adminUser, "Admin123!");
+            await userManager.AddToRoleAsync(adminUser, "Admin");
+            logger.LogInformation("Utworzono użytkownika admin: {Email}", adminEmail);
+        }
+        else
+        {
+            logger.LogInformation("Użytkownik admin już istnieje: {Email}", adminEmail);
         }
     }
-
-    var adminEmail = "admin@biblioteka.pl";
-    var adminUser = await userManager.FindByEmailAsync(adminEmail);
-    if (adminUser == null)
+    catch (Exception ex)
     {
-        adminUser = new ApplicationUser
-        {
-            UserName = adminEmail,
-            Email = adminEmail,
-            FullName = "Administrator",
-            EmailConfirmed = true
-        };
-        await userManager.CreateAsync(adminUser, "Admin123!");
-        await userManager.AddToRoleAsync(adminUser, "Admin");
+        logger.LogError(ex, "BŁĄD podczas seedowania ról i admina: {Message}", ex.Message);
+        // Nie przerywamy działania aplikacji
     }
 }
 
@@ -84,9 +135,13 @@ using (var scope = app.Services.CreateScope())
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
-    var context = services.GetRequiredService<ApplicationDbContext>();
-    
-    var booksToAdd = new List<Book>
+    var logger = services.GetRequiredService<ILogger<Program>>();
+    try
+    {
+        var context = services.GetRequiredService<ApplicationDbContext>();
+        logger.LogInformation("Seedowanie książek...");
+        
+        var booksToAdd = new List<Book>
     {
         new Book
         {
@@ -222,16 +277,23 @@ using (var scope = app.Services.CreateScope())
         }
     };
 
-    // Dodaj tylko te książki, których jeszcze nie ma w bazie (sprawdzenie po ISBN)
-    foreach (var book in booksToAdd)
-    {
-        if (!await context.Books.AnyAsync(b => b.ISBN == book.ISBN))
+        // Dodaj tylko te książki, których jeszcze nie ma w bazie (sprawdzenie po ISBN)
+        foreach (var book in booksToAdd)
         {
-            context.Books.Add(book);
+            if (!await context.Books.AnyAsync(b => b.ISBN == book.ISBN))
+            {
+                context.Books.Add(book);
+            }
         }
+        
+        await context.SaveChangesAsync();
+        logger.LogInformation("Seedowanie książek zakończone pomyślnie.");
     }
-    
-    await context.SaveChangesAsync();
+    catch (Exception ex)
+    {
+        logger.LogError(ex, "BŁĄD podczas seedowania książek: {Message}", ex.Message);
+        // Nie przerywamy działania aplikacji
+    }
 }
 
 if (!app.Environment.IsDevelopment())
